@@ -228,4 +228,4 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
     except Exception as e:
         st.session_state.messages.append({"role": "assistant", "content": f"Erreur système : {str(e)}"})
         
-    st.return")
+    st.return()
