@@ -1,217 +1,244 @@
 import streamlit as st
 import os
 from openai import OpenAI
+import openai
 from dotenv import load_dotenv
 
 # Charger les variables secrètes (.env)
 load_dotenv()
 
 # ==========================================
-# 1. DESIGN SYSTEM PROPRIÉTAIRE (STYLE GEMINI)
+# 1. DESIGN SYSTEM ULTRA-FIDÈLE (STYLE CHATGPT)
 # ==========================================
 st.set_page_config(
     page_title="SMO IA",
-    page_icon="☘️",
+    page_icon="🤖",
     layout="centered",
     initial_sidebar_state="expanded"
 )
 
-# Injection CSS pour appliquer le design épuré sans bordure de Gemini
+# Injection CSS avancée pour calquer l'interface de ChatGPT (Captures 151700 / 160153)
 st.markdown("""
     <style>
-    /* Fond noir mat uniforme */
+    /* Fond noir mat absolu de ChatGPT */
     .stApp {
-        background-color: #0e0e10 !important;
-        color: #e3e3e3 !important;
+        background-color: #212121 !important;
+        color: #ececf1 !important;
     }
     
-    /* Nettoyage de l'interface Streamlit */
+    /* Masquage total des éléments superflus de Streamlit */
     header, footer, [data-testid="stDecoration"] {
         visibility: hidden !important;
         height: 0px !important;
     }
     
-    /* Barre latérale sombre */
+    /* Transformation de la Sidebar en barre d'icônes minimaliste noire */
     [data-testid="stSidebar"] {
-        background-color: #171719 !important;
-        border-right: 1px solid #222327 !important;
+        background-color: #000000 !important;
+        border-right: 1px solid #2f2f2f !important;
+        min-width: 80px !important;
+        max-width: 90px !important;
     }
     
-    /* Titre d'accueil centré */
-    .gemini-title {
-        font-family: 'Google Sans', 'Inter', sans-serif;
-        font-weight: 400;
-        font-size: 2.5rem;
+    /* Conteneur d'icônes personnalisé style ChatGPT dans la barre latérale */
+    .chatgpt-sidebar-menu {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+        margin-top: 20px;
+        height: 80vh;
+        position: relative;
+    }
+    
+    .sidebar-icon {
+        color: #b4b4b4;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .sidebar-icon:hover {
+        color: #ffffff;
+    }
+    
+    /* Bouton utilisateur circulaire "LL" rouge tout en bas */
+    .avatar-user-ll {
+        background-color: #ab47bc !important; /* Couleur pourpre/rouge de la capture */
+        color: white !important;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Titre d'accueil épuré de ChatGPT */
+    .chatgpt-title {
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 2.2rem;
         color: #ffffff;
         text-align: center;
-        margin-top: 6rem;
-        margin-bottom: 2.5rem;
+        margin-top: 8rem;
+        margin-bottom: 2rem;
+        letter-spacing: -0.5px;
     }
     
-    /* Boutons Suggestions (Capsules de départ) */
+    /* Boutons de suggestions (Pillules fines avec bordure) */
     div.stButton > button {
-        background-color: #171719 !important;
-        color: #c4c7c5 !important;
-        border: 1px solid #2e3035 !important;
-        border-radius: 16px !important;
-        padding: 14px 20px !important;
-        width: 100% !important;
-        text-align: left !important;
-        min-height: 70px !important;
+        background-color: transparent !important;
+        color: #b4b4b4 !important;
+        border: 1px solid #4d4d4d !important;
+        border-radius: 20px !important;
+        padding: 8px 18px !important;
+        font-size: 0.9rem !important;
         transition: all 0.2s ease !important;
     }
     div.stButton > button:hover {
-        border-color: #10b981 !important;
+        border-color: #8e8e93 !important;
         color: #ffffff !important;
-        background-color: #1c2d24 !important;
+        background-color: #2f2f2f !important;
     }
     
-    /* Barre d'entrée de texte flottante style Gemini */
+    /* Barre d'entrée de texte flottante de ChatGPT (Arrondie et sombre) */
     .stChatInputContainer {
-        border-radius: 28px !important;
-        border: 1px solid #2e3035 !important;
-        background-color: #171719 !important;
-    }
-    .stChatInputContainer:focus-within {
-        border-color: #10b981 !important;
+        border-radius: 26px !important;
+        border: 1px solid #4d4d4d !important;
+        background-color: #2f2f2f !important;
     }
     
-    /* Masquage des avatars et boites de dialogue par défaut de Streamlit */
-    [data-testid="stChatMessage"] {
-        background-color: transparent !important;
-        border: none !important;
-        padding: 0px !important;
+    /* Message d'erreur personnalisé style Premium */
+    .error-card {
+        background-color: #2a1a1a;
+        border: 1px solid #f44336;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 15px 0;
+        color: #ff9800;
+        font-family: 'Inter', sans-serif;
     }
     </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. INITIALISATION DU MOTEUR & SESSIONS
+# 2. INITIALISATION DES MOTEURS & SESSIONS
 # ==========================================
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-if "user_name" not in st.session_state:
-    st.session_state.user_name = "Invité"
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # ==========================================
-# 3. PANNEAU LATÉRAL GESTIONNAIRE
+# 3. BARRE LATÉRALE RE-DESIGNÉE (STYLE CHATGPT)
 # ==========================================
 with st.sidebar:
-    st.markdown("<h2 style='color: #10b981; font-weight: 500;'>☘️ SMO IA</h2>", unsafe_allow_html=True)
+    # Structure HTML/Widgets pour correspondre à Capture d'écran 2026-06-08 160153.png
+    st.markdown("""
+        <div style="text-align: center; margin-bottom: 25px;">
+            <span style="font-size: 1.8rem; color: white;">⚡</span>
+        </div>
+    """, unsafe_allow_html=True)
     
-    if st.button("➕ Nouveau chat", key="clear_session", use_container_width=True):
+    if st.button("📝", key="new_chat_icon", help="Nouveau chat"):
         st.session_state.messages = []
         st.rerun()
         
-    st.markdown("---")
+    st.markdown("<br><div style='text-align:center; color:#666;'>🔍</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:#666;'>💬</div>", unsafe_allow_html=True)
     
-    if st.session_state.authenticated:
-        st.markdown(f"👤 Compte : **{st.session_state.user_name}**")
-        st.caption("✅ Mode complet débloqué (Médias actifs)")
-        if st.button("Se déconnecter", use_container_width=True):
-            st.session_state.authenticated = False
-            st.session_state.user_name = "Invité"
-            st.rerun()
-    else:
-        st.markdown("### 🔑 Espace Membre")
-        with st.expander("Se connecter / S'inscrire"):
-            u = st.text_input("Identifiant")
-            p = st.text_input("Mot de passe", type="password")
-            if st.button("Connexion", use_container_width=True):
-                if u and p:
-                    st.session_state.authenticated = True
-                    st.session_state.user_name = "Loïc LTP"
-                    st.rerun()
-
-    st.markdown("---")
-    st.caption("⏱️ Historique Récent")
+    # Remplir l'espace pour pousser le profil vers le bas
+    st.markdown("<div style='height: 50vh;'></div>", unsafe_allow_html=True)
+    
+    # Pastille ronde "LL" en bas de la barre latérale
+    st.markdown('<div class="avatar-user-ll">LL</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 4. TRACÉ DE L'INTERFACE DE DISCUSSION (STYLE GEMINI VISUEL)
+# 4. ZONE DE TEXTE CENTRALE (QU'EST-CE QUI VOUS INTÉRESSE...)
 # ==========================================
 if not st.session_state.messages:
-    # Écran de bienvenue minimaliste pur
-    st.markdown(f'<div class="gemini-title">Salut {st.session_state.user_name}, commençons</div>', unsafe_allow_html=True)
+    # Titre calqué sur ta capture d'écran
+    st.markdown('<div class="chatgpt-title">Qu\'est-ce qui vous intéresse aujourd\'hui ?</div>', unsafe_allow_html=True)
     
+    # Alignement horizontal des pillules de choix rapides
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("📝 Rédiger un texte\n\nAide-moi à concevoir un écrit clair et précis", key="b1"):
-            st.session_state.messages.append({"role": "user", "content": "Aide-moi à rédiger un texte clair et structuré."})
+        if st.button("🖼️ Créer une image", key="p1", use_container_width=True):
+            st.session_state.messages.append({"role": "user", "content": "Génère-moi une illustration créative."})
             st.rerun()
     with col2:
-        if st.button("💻 Optimiser un code\n\nNettoyer mon script pour le rendre plus rapide", key="b2"):
-            st.session_state.messages.append({"role": "user", "content": "Analyse et optimise mon code informatique."})
+        if st.button("✏️ Rédiger ou modifier", key="p2", use_container_width=True):
+            st.session_state.messages.append({"role": "user", "content": "Aide-moi à rédiger un document officiel."})
             st.rerun()
     with col3:
-        if st.button("💡 Idée de business\n\nCréer un plan d action numérique rentable", key="b3"):
-            st.session_state.messages.append({"role": "user", "content": "Donne-moi une stratégie pour lancer un business en ligne efficace."})
+        if st.button("🌐 Faire une recherche", key="p3", use_container_width=True):
+            st.session_state.messages.append({"role": "user", "content": "Fais une recherche approfondie sur le web."})
             st.rerun()
 else:
-    # Rendu des messages via HTML5/CSS3 sur mesure pour imiter parfaitement Capture d'écran 2026-06-08 155842.png
+    # Flux des dialogues épurés
     for msg in st.session_state.messages:
         if msg["role"] == "user":
             st.markdown(f"""
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem; padding-right: 10px;">
-                    <div style="background-color: #1e1f22; color: #ffffff; padding: 12px 24px; border-radius: 24px; max-width: 75%; font-family: 'Inter', sans-serif; font-size: 1rem;">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+                    <div style="background-color: #2f2f2f; color: #ffffff; padding: 10px 20px; border-radius: 20px; max-width: 75%;">
                         {msg["content"]}
                     </div>
                 </div>
             """, unsafe_allow_html=True)
         else:
+            # Réponse brute sans boite grise, posée directement sur le fond noir
             st.markdown(f"""
-                <div style="display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 2.5rem; padding-left: 10px; font-family: 'Inter', sans-serif;">
-                    <div style="color: #f0f4f9; font-size: 1.05rem; line-height: 1.6; max-width: 95%; white-space: pre-wrap;">{msg["content"]}</div>
-                    <!-- Ligne d'outils d'actions sous la réponse identique à Gemini -->
-                    <div style="display: flex; gap: 16px; color: #80868b; margin-top: 14px; font-size: 0.9rem; cursor: pointer; user-select: none;">
-                        <span title="Bonne réponse">👍</span>
-                        <span title="Mauvaise réponse">👎</span>
-                        <span title="Recommencer">🔄</span>
-                        <span title="Copier">📋</span>
-                        <span title="Plus">⋯</span>
+                <div style="margin-bottom: 2rem; padding-left: 5px;">
+                    <div style="color: #ececf1; font-size: 1rem; line-height: 1.6; white-space: pre-wrap;">{msg["content"]}</div>
+                    <div style="display: flex; gap: 14px; color: #7d7d7d; margin-top: 10px; font-size: 0.85rem; user-select: none;">
+                        <span>👍</span> <span>👎</span> <span>📋</span> <span>🔄</span>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
 
 # ==========================================
-# 5. ZONE D'ENTRÉE & TRAITEMENT DE LA COMMUNICATION
+# 5. BARRE D'ÉCRITURE & GESTION DE L'ERREUR 429 QUOTA
 # ==========================================
-if not st.session_state.authenticated:
-    st.markdown("<p style='text-align: center; color: #80868b; font-size: 0.85rem; margin-top: 20px;'>💡 Pour insérer vos photos, vos vidéos ou approfondir vos recherches de façon experte, créez un compte dans le panneau latéral.</p>", unsafe_allow_html=True)
+user_query = st.chat_input("Poser une question...")
 
-# Barre de saisie utilisateur
-user_query = st.chat_input("Demander à SMO IA...")
-
-# Traitement de la communication fluide (Ancienne ligne 200 entièrement corrigée)
 if user_query:
     st.session_state.messages.append({"role": "user", "content": user_query})
     st.rerun()
 
-# Déclenchement automatique de la réponse si le dernier message vient de l'utilisateur
+# Calcul et communication avec l'API
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     
-    # Construction de l'historique complet pour maintenir le fil de la conversation
-    historique_complet = [{"role": "system", "content": "Tu es SMO IA, une intelligence artificielle dotée d'une approche humaine et bienveillante. Tu es experte en programmation et business."}]
+    context_build = [{"role": "system", "content": "Tu es SMO IA, configuré sous une interface type ChatGPT."}]
     for m in st.session_state.messages:
-        historique_complet.append({"role": m["role"], "content": m["content"]})
+        context_build.append({"role": m["role"], "content": m["content"]})
         
     try:
-        # Appel direct et fluide de l'API OpenAI
         completion = client.chat.completions.create(
             model="gpt-4o",
-            messages=historique_complet,
+            messages=context_build,
             temperature=0.7
         )
         reponse_ia = completion.choices[0].message.content
         st.session_state.messages.append({"role": "assistant", "content": reponse_ia})
+        
+    except openai.RateLimitError:
+        # Interception propre de l'erreur 429 Quota épuisé
+        error_msg = """
+        <div class="error-card">
+            <strong>⚠️ Solde de l'API OpenAI Épuisé (Erreur 429)</strong><br>
+            Ton code fonctionne à merveille ! Cependant, ta clé API OpenAI n'a pas de provision financière active ou a expiré.<br><br>
+            <strong>Pour résoudre cela :</strong><br>
+            1. Rends-toi sur <a href="https://platform.openai.com/settings/organization/billing" target="_blank" style="color: #ff9800; text-decoration: underline;">OpenAI Billing</a>.<br>
+            2. Ajoute un minimum de 5$ de crédit sur ton compte (Prepaid Funds).
+        </div>
+        """
+        st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        
     except Exception as e:
-        st.session_state.messages.append({"role": "assistant", "content": f"Désolé, une erreur technique est survenue : {str(e)}"})
+        st.session_state.messages.append({"role": "assistant", "content": f"Une erreur imprévue est survenue : {str(e)}"})
         
     st.rerun()
-
-# Mention légale fixe tout en bas de page (Style Capture d'écran 2026-06-08 155830.png)
-st.markdown("<div style='position: fixed; bottom: 12px; left: 0; right: 0; text-align: center; color: #80868b; font-size: 0.75rem; font-family: sans-serif;'>SMO IA est une IA et peut se tromper.</div>", unsafe_allow_html=True)
