@@ -204,8 +204,7 @@ if user_query or (st.session_state.messages and st.session_state.messages[-1]["r
             stream=True
         )
         final_response = st.write_stream(stream)
-        
+        st.session_state.messages.append({"role": "assistant", "content": final_response})
+    st.rerun()
     st.session_state.messages.append({"role": "assistant", "content": final_response})
     st.rerun()
-
-```
