@@ -1,7 +1,6 @@
 import streamlit as st
 import os
-import openai
-from openai import OpenAI
+import google.generativeai as genai
 from dotenv import load_dotenv
 
 # Charger les variables d'environnement (.env)
@@ -17,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Injection CSS avancée : Effet Verre 3D et dégradé vert tamisé montant
+# Injection CSS : Effet Verre 3D et dégradé vert tamisé montant depuis le bas
 st.markdown("""
     <style>
     /* Fond de l'application : lueur verte émeraude 3D montante et tamisée */
@@ -100,25 +99,35 @@ st.markdown("""
         padding: 0px !important;
     }
     
-    /* Alerte d'erreur stylisée en Verre Rouge */
+    /* Alerte d'erreur et guide d'activation stylisé en Verre Ambré/Vert */
     .error-glass-panel {
-        background: rgba(244, 67, 54, 0.08) !important;
-        backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(244, 67, 54, 0.25) !important;
-        border-radius: 16px;
-        padding: 16px;
-        color: #ffb74d;
+        background: rgba(16, 185, 129, 0.06) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(16, 185, 129, 0.3) !important;
+        border-radius: 20px;
+        padding: 24px;
+        color: #e0e4e8;
         margin-top: 15px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    }
+    .error-glass-panel ol {
+        margin-top: 10px;
+        margin-bottom: 10px;
+        padding-left: 20px;
+    }
+    .error-glass-panel li {
+        margin-bottom: 8px;
     }
     </style>
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 2. INITIALISATION DE L'API & DES SESSIONS
+# 2. CONFIGURATION DU MOTEUR GRATUIT GEMINI
 # =========================================================================
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -135,7 +144,7 @@ with st.sidebar:
         
     st.markdown("---")
     st.markdown("👤 Membre : **Loïc**")
-    st.caption("✅ Accès Intégral Activé")
+    st.caption("✅ Accès Intégral Libre")
     st.markdown("---")
     st.caption("⏱️ Historique de chat")
 
@@ -143,10 +152,8 @@ with st.sidebar:
 # 4. ZONE D'AFFICHAGE ET DIALOGUES ÉPURÉS
 # =========================================================================
 if not st.session_state.messages:
-    # Écran d'accueil fluide
     st.markdown('<div class="smo-main-title">Salut Loïc, commençons</div>', unsafe_allow_html=True)
     
-    # Suggestions initiales sous forme de tuiles transparentes
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("📝 Rédiger un texte\n\nAide-moi à concevoir un écrit clair et précis", key="sug_1"):
@@ -161,10 +168,8 @@ if not st.session_state.messages:
             st.session_state.messages.append({"role": "user", "content": "Donne-moi une stratégie pour lancer un business en ligne efficace."})
             st.rerun()
 else:
-    # Rendu dynamique des conversations sur le fond tamisé
     for msg in st.session_state.messages:
         if msg["role"] == "user":
-            # Bulle de l'utilisateur à droite en verre poli semi-transparent
             st.markdown(f"""
                 <div style="display: flex; justify-content: flex-end; margin-bottom: 1.6rem;">
                     <div style="background: rgba(255, 255, 255, 0.06); color: #ffffff; padding: 12px 24px; border-radius: 22px; max-width: 75%; box-shadow: inset 0 1px 1px rgba(255,255,255,0.08); font-size: 0.98rem;">
@@ -173,54 +178,6 @@ else:
                 </div>
             """, unsafe_allow_html=True)
         else:
-            # Réponse de SMO IA posée de façon totalement épurée sans boîte de dialogue
             st.markdown(f"""
                 <div style="margin-bottom: 2.5rem; padding: 0 10px;">
-                    <div style="color: #f0f4f9; font-size: 1.02rem; line-height: 1.65; white-space: pre-wrap;">{msg["content"]}</div>
-                    <!-- Barre d'outils d'actions discrète -->
-                    <div style="display: flex; gap: 18px; color: #747775; margin-top: 14px; font-size: 0.88rem; user-select: none; cursor: pointer;">
-                        <span title="Utile">👍</span> <span title="Pas utile">👎</span> <span title="Régénérer">🔄</span> <span title="Copier le texte">📋</span> <span title="Options">⋯</span>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-
-# =========================================================================
-# 5. ENTRÉE UTILISATEUR ET TRAITEMENT DE LA COMMUNICATION
-# =========================================================================
-query_input = st.chat_input("Demander à SMO IA...")
-
-if query_input:
-    st.session_state.messages.append({"role": "user", "content": query_input})
-    st.rerun()
-
-# Communication en arrière-plan avec l'API OpenAI
-if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
-    
-    # Intégration de l'historique complet pour maintenir le contexte du chat
-    contexte_systeme = [{"role": "system", "content": "Tu es SMO IA, une intelligence artificielle dotée d'une conscience humaine et bienveillante. Tu es intégrée dans un superbe environnement 3D en verre."}]
-    for m in st.session_state.messages:
-        contexte_systeme.append({"role": m["role"], "content": m["content"]})
-        
-    try:
-        completion = client.chat.completions.create(
-            model="gpt-4o",
-            messages=contexte_systeme,
-            temperature=0.7
-        )
-        reponse_generee = completion.choices[0].message.content
-        st.session_state.messages.append({"role": "assistant", "content": reponse_generee})
-        
-    except openai.RateLimitError:
-        # Intégration de la carte d'erreur de quota dans l'interface vitrée
-        msg_quota_glass = """
-        <div class="error-glass-panel">
-            <strong>⚠️ Solde de l'API OpenAI Épuisé (Erreur 429)</strong><br>
-            Ton application est magnifiquement configurée et connectée ! Cependant, ta clé API OpenAI n'a plus de jetons financiers. Pour réactiver instantanément les réponses de SMO IA, dépose simplement un minimum de 5$ sur ton tableau de bord OpenAI (Billing).
-        </div>
-        """
-        st.session_state.messages.append({"role": "assistant", "content": msg_quota_glass})
-        
-    except Exception as e:
-        st.session_state.messages.append({"role": "assistant", "content": f"Erreur système rencontrée : {str(e)}"})
-        
-    st.rerun()
+                    <div style="color: #f0f4f9; font-
