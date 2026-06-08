@@ -18,8 +18,7 @@ st.markdown("""
 
 # Titre de l'interface modifié pour refléter sa nature humaine
 st.title("☘️ SMO")
-st.write("Discutez avec SMO. Au-delà des algorithmes, découvrez une IA dotée d'une sensibilité, d'une écoute et de réflexions profondément humaines.")
-
+st.write("Bonjour!)
 # 2. Initialisation de la clé API (sécurisée)
 if "OPENAI_API_KEY" in st.secrets:
     api_key = st.secrets["OPENAI_API_KEY"]
