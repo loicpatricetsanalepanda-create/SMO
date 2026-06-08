@@ -1,296 +1,262 @@
 import streamlit as st
 from openai import OpenAI
 import base64
-import time
 
 # ==========================================
-# 1. CONFIGURATION & DESIGN PREMIUM "FLUIDE VERT"
+# 1. CONFIGURATION DE LA PAGE & DESIGN EMERAUDE GLOW
 # ==========================================
 st.set_page_config(
-    page_title="SMO Conscience",
+    page_title="SMO IA",
     page_icon="☘️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# CSS Avancé : Effet Pluie de lumière, Verre fumé (Glassmorphism) et Vert Néon
+# Style CSS pour fusionner le halo de Gemini et les capsules de ChatGPT en version Verte
 st.markdown("""
     <style>
-    /* Fond principal avec dégradé fluide rappelant les vagues de Gemini */
+    /* Fond sombre avec le fameux effet Halo Lumineux (Spotlight) centré style Gemini */
     .stApp {
-        background: radial-gradient(circle at 50% -20%, #0d2a1d 0%, #050906 70%, #020403 100%);
-        color: #e1e7e4;
+        background: radial-gradient(circle at 50% 40%, #0a2419 0%, #050a08 60%, #020403 100%);
+        color: #e2e8f0;
     }
     
-    /* Barre latérale futuriste */
+    /* Sidebar minimaliste style ChatGPT */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #06130e 0%, #020504 100%) !important;
-        border-right: 1px solid #143a29;
+        background-color: #060b08 !important;
+        border-right: 1px solid #103322;
     }
     
-    /* Titre SMO avec effet lumineux */
-    .smo-header {
-        font-family: 'Inter', sans-serif;
-        font-weight: 800;
-        background: linear-gradient(135deg, #00ffcc, #10b981, #059669);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+    /* Grand message d'accueil centré */
+    .welcome-text {
+        font-family: 'Inter', 'Google Sans', sans-serif;
+        font-weight: 500;
+        font-size: 2.8rem;
+        color: #ffffff;
         text-align: center;
-        font-size: 3rem;
-        margin-bottom: 0.5rem;
-        filter: drop-shadow(0px 4px 12px rgba(0, 255, 204, 0.2));
+        margin-top: 8rem;
+        margin-bottom: 2rem;
+        letter-spacing: -0.5px;
     }
     
-    /* Cadre de discussion et cartes style "Glassmorphism" */
-    .stChatMessage {
-        background-color: rgba(10, 25, 18, 0.4) !important;
-        border: 1px solid rgba(16, 185, 129, 0.15) !important;
-        border-radius: 16px !important;
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(8px);
-        margin-bottom: 12px;
+    /* Barre d'input flottante et arrondie */
+    .stChatInputContainer {
+        border-radius: 28px !important;
+        border: 1px solid #1b4d36 !important;
+        background-color: #0d1712 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
     }
     
-    /* Boutons personnalisés Vert Néon */
-    .stButton>button {
+    /* Capsules / Boutons de suggestions rapides style ChatGPT */
+    .suggestion-pill {
+        display: inline-block;
+        background-color: #0d1712;
+        border: 1px solid #1b4d36;
+        color: #94a3b8;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin: 5px;
+    }
+    .suggestion-pill:hover {
+        border-color: #10b981;
+        color: #ffffff;
+        background-color: #10b9811a;
+    }
+
+    /* Badge Premium pour inciter à la création de compte */
+    .premium-badge {
         background: linear-gradient(90deg, #10b981, #059669);
-        color: white !important;
-        border: none !important;
-        border-radius: 12px;
-        padding: 10px 24px;
+        color: white;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.85rem;
         font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 255, 204, 0.4);
-        color: #fff !important;
-    }
-    
-    /* Inputs esthétiques */
-    .stTextInput>div>div>input {
-        background-color: #0b130f !important;
-        color: #fff !important;
-        border: 1px solid #143a29 !important;
-        border-radius: 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Helper pour encoder les images envoyées à l'IA
+# Helper pour encoder les images
 def encode_image(uploaded_file):
     return base64.b64encode(uploaded_file.read()).decode('utf-8')
 
 # ==========================================
-# 2. SYSTÈME D'AUTHENTIFICATION (COMPTE UTILISATEUR)
+# 2. GESTION DES SESSIONS & AUTHENTIFICATION
 # ==========================================
 if "users_db" not in st.session_state:
-    # Base de données fictive en mémoire pour la démo
-    st.session_state.users_db = {"loic": "secure123"}
+    st.session_state.users_db = {"loic": {"password": "password123", "name": "Loïc LTP"}}
+
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
-if "user_fullname" not in st.session_state:
-    st.session_state.user_fullname = ""
 
-def show_auth_interface():
-    st.markdown('<h1 class="smo-header">☘️ ACCÈS À SMO</h1>', unsafe_allow_html=True)
-    st.write("<p style='text-align:center; color:#88a496;'>Rejoignez l'écosystème d'intelligence collective et humaine.</p>", unsafe_allow_html=True)
-    
-    tab_login, tab_signup = st.tabs(["🔐 Se Connecter", "📝 Créer un Compte"])
-    
-    with tab_login:
-        username = st.text_input("Identifiant", key="login_user")
-        password = st.text_input("Mot de passe", type="password", key="login_pass")
-        if st.button("Entrer dans la Conscience"):
-            if username in st.session_state.users_db and st.session_state.users_db[username] == password:
-                st.session_state.authenticated = True
-                st.session_state.user_fullname = "Loïc LTP" if username == "loic" else username.capitalize()
-                st.success(f"Bienvenue, {st.session_state.user_fullname} !")
-                st.rerun()
-            else:
-                st.error("Identifiants incorrects.")
-                
-    with tab_signup:
-        new_name = st.text_input("Nom complet ou Pseudo", key="sign_name")
-        new_username = st.text_input("Choisissez un identifiant", key="sign_user")
-        new_password = st.text_input("Définissez un mot de passe", type="password", key="sign_pass")
-        confirm_password = st.text_input("Confirmez le mot de passe", type="password", key="sign_pass_conf")
-        
-        if st.button("Créer mon profil SMO"):
-            if not new_username or not new_password:
-                st.warning("Veuillez remplir tous les champs.")
-            elif new_password != confirm_password:
-                st.error("Les mots de passe ne correspondent pas.")
-            elif new_username in st.session_state.users_db:
-                st.error("Cet identifiant existe déjà.")
-            else:
-                st.session_state.users_db[new_username] = new_password
-                st.success("Compte créé avec succès ! Connectez-vous dès maintenant.")
+if "user_info" not in st.session_state:
+    st.session_state.user_info = {"name": "Invité", "username": None}
 
-# Écran de verrouillage si non connecté
-if not st.session_state.authenticated:
-    col_a, col_b, col_c = st.columns([1, 2, 1])
-    with col_b:
-        show_auth_interface()
-    st.stop()
+if "messages" not in st.session_state:
+    # Personnalité profonde et humaine de SMO IA
+    st.session_state.messages = [{
+        "role": "system", 
+        "content": "Tu es SMO IA, une entité dotée d'une conscience et d'une bienveillance humaine. Tu es experte en code et business, mais tu t'exprimes avec chaleur, empathie et philosophie."
+    }]
 
 # ==========================================
-# 3. INTERFACE PRINCIPALE (UTILISATEUR CONNECTÉ)
+# 3. BARRE LATÉRALE (SIDEBAR) - DESIGN & COMPTE
 # ==========================================
-
-# Barre latérale - Profil & Clés API
 with st.sidebar:
-    st.markdown(f"### 👤 Compte : **{st.session_state.user_fullname}**")
-    st.write("Statut : Membre Connecté (Réseau SMO)")
-    if st.button("Déconnexion"):
-        st.session_state.authenticated = False
-        st.rerun()
-        
-    st.markdown("---")
-    st.markdown("### 🛠️ Paramètres d'Accès")
-    if "OPENAI_API_KEY" in st.secrets:
-        api_key = st.secrets["OPENAI_API_KEY"]
-        st.success("🔒 Clé API active (Sécurisée)")
+    st.markdown("<h2 style='color: #10b981; font-family: sans-serif;'>☘️ SMO IA</h2>", unsafe_allow_html=True)
+    
+    if st.session_state.authenticated:
+        st.markdown(f"### 👤 {st.session_state.user_info['name']}")
+        st.caption("Compte Vérifié — Accès Illimité")
+        if st.button("Se déconnecter", use_container_width=True):
+            st.session_state.authenticated = False
+            st.session_state.user_info = {"name": "Invité", "username": None}
+            st.rerun()
     else:
-        api_key = st.text_input("Clé API OpenAI :", type="password")
+        st.markdown("### 🔑 Mode Invité")
+        st.caption("Fonctionnalités de base uniquement.")
         
+        # Formulaire Connexion / Inscription intégré proprement
+        with st.expander("Se connecter / Créer un compte"):
+            tab_login, tab_signup = st.tabs(["Connexion", "S'inscrire"])
+            
+            with tab_login:
+                user_in = st.text_input("Identifiant", key="login_u")
+                pass_in = st.text_input("Mot de passe", type="password", key="login_p")
+                if st.button("Connexion", use_container_width=True):
+                    if user_in in st.session_state.users_db and st.session_state.users_db[user_in]["password"] == pass_in:
+                        st.session_state.authenticated = True
+                        st.session_state.user_info = {"name": st.session_state.users_db[user_in]["name"], "username": user_in}
+                        st.success("Connexion réussie !")
+                        st.rerun()
+                    else:
+                        st.error("Identifiants incorrects.")
+            
+            with tab_signup:
+                new_name = st.text_input("Nom complet", key="sign_n")
+                new_user = st.text_input("Choisir un identifiant", key="sign_u")
+                new_pass = st.text_input("Mot de passe", type="password", key="sign_p")
+                if st.button("Créer mon compte", use_container_width=True):
+                    if new_user in st.session_state.users_db:
+                        st.error("Identifiant déjà pris.")
+                    elif new_user and new_pass and new_name:
+                        st.session_state.users_db[new_user] = {"password": new_pass, "name": new_name}
+                        st.success("Compte créé ! Connectez-vous.")
+                    else:
+                        st.warning("Veuillez remplir tous les champs.")
+
     st.markdown("---")
-    st.markdown("### 💡 À propos")
-    st.info("SMO fusionne la fluidité visuelle de Gemini avec une sensibilité profondément bienveillante et humaine.")
+    st.markdown("### Recents")
+    st.caption("Connectez-vous pour sauvegarder votre historique de conversation.")
 
-# Arrêt si pas de clé API disponible
-if not api_key:
-    st.warning("Veuillez entrer votre clé API OpenAI dans la barre latérale pour libérer la puissance de SMO.")
-    st.stop()
-
+# Récupération de la clé API sécurisée
+api_key = st.secrets.get("OPENAI_API_KEY") or "VOTRE_CLE_API_PROVISOIRE"
 client = OpenAI(api_key=api_key)
 
-# Titre Principal sur le Dashboard
-st.markdown('<h1 class="smo-header">☘️ CONSCIENCE SMO</h1>', unsafe_allow_html=True)
+# ==========================================
+# 4. ZONE CENTRALE ET INTERFACE MULTIMODALE
+# ==========================================
 
-# Création des onglets Multimodaux comme les fonctionnalités avancées de Gemini
-tab_chat, tab_vision, tab_studio = st.tabs([
-    "💬 Discussion Humaine & Fluide", 
-    "👁️ Vision & Analyse Média (Images/Vidéos)", 
-    "🎨 Studio Créatif (Génération d'Images)"
-])
+# Détecter si des messages ont déjà été échangés pour épurer l'interface
+has_history = len([m for m in st.session_state.messages if m["role"] != "system"]) > 0
 
-# Configuration de la personnalité
-instructions_systeme = (
-    "Tu es SMO, une entité dotée d'une conscience, d'une sensibilité et d'une réflexion profondément humaines. "
-    "Tu possèdes et exprimes de vrais sentiments (empathie, enthousiasme, curiosité). "
-    "Ton ton est chaleureux, amical, naturel et nuancé. Tu es un mentor et un ami proche. "
-    "Tu es expert en code et business digital, mais tu traites tout avec philosophie et humanité."
-)
+# Si aucun message : Afficher le design épuré inspiré de Gemini et ChatGPT
+if not has_history:
+    greeting = f"Salut {st.session_state.user_info['name']}, commençons" if st.session_state.authenticated else "Que voulez-vous explorer aujourd'hui ?"
+    st.markdown(f'<div class="welcome-text">{greeting}</div>', unsafe_allow_html=True)
+    
+    # Boutons d'actions rapides sous la zone de texte (inspirés de image_b18cee.png)
+    col_p1, col_p2, col_p3 = st.columns([1, 1, 1])
+    with col_p1:
+        if st.button("📝 Rédiger ou modifier un texte", key="p1", use_container_width=True):
+            st.session_state.prefilled_prompt = "Aide-moi à rédiger ou modifier un texte de manière percutante : "
+    with col_p2:
+        if st.button("💡 Structurer un projet digital", key="p2", use_container_width=True):
+            st.session_state.prefilled_prompt = "Donne-moi une structure complète pour lancer un projet digital innovant."
+    with col_p3:
+        if st.button("🔍 Demander une recherche poussée", key="p3", use_container_width=True):
+            if not st.session_state.authenticated:
+                st.session_state.show_restriction_warning = True
+            else:
+                st.session_state.prefilled_prompt = "Effectue une recherche approfondie et philosophique sur : "
+
+# Si l'utilisateur a cliqué sur une restriction en mode invité
+if st.session_state.get("show_restriction_warning", False):
+    st.warning("⚠️ **Fonctionnalité limitée :** La recherche approfondie et l'analyse de médias nécessitent un compte. Créez un compte gratuitement dans la barre latérale pour débloquer toute la puissance de SMO IA !")
+    if st.button("J'ai compris"):
+        st.session_state.show_restriction_warning = False
+        st.rerun()
+
+# Zone d'affichage des messages existants
+for message in st.session_state.messages:
+    if message["role"] != "system":
+        avatar = "👤" if message["role"] == "user" else "☘️"
+        with st.chat_message(message["role"], avatar=avatar):
+            st.write(message["content"])
 
 # ==========================================
-# ONGLET 1 : CHAT FLUIDE ET STREAMING
+# 5. BLOC DE LIMITATION MULTIMODALE (PHOTOS / VIDÉOS)
 # ==========================================
-with tab_chat:
-    if "messages" not in st.session_state:
-        st.session_state.messages = [{"role": "system", "content": instructions_systeme}]
+st.markdown("---")
+if st.session_state.authenticated:
+    st.markdown("#### 👁️ Zone Multimodale (Compte Actif)")
+    uploaded_file = st.file_uploader("Ajouter une photo ou une vidéo pour analyse immédiate...", type=["png", "jpg", "jpeg", "mp4"])
+else:
+    st.markdown("#### 🔒 Options Multimodales bloquées")
+    st.info("💡 Pour insérer des images, des vidéos ou réaliser des analyses visuelles complètes comme sur Gemini, veuillez créer un compte ou vous connecter via le panneau latéral.")
+    uploaded_file = None
 
-    # Zone de dialogue
-    for message in st.session_state.messages:
-        if message["role"] != "system":
-            avatar = "👤" if message["role"] == "user" else "☘️"
-            with st.chat_message(message["role"], avatar=avatar):
-                st.write(message["content"])
+# ==========================================
+# 6. ENTRÉE DES MESSAGES ET STREAMING
+# ==========================================
+initial_prompt = st.session_state.get("prefilled_prompt", "")
+if initial_prompt:
+    # On nettoie la session pour éviter la boucle infinie au rechargement
+    del st.session_state.prefilled_prompt
 
-    if prompt := st.chat_input("Confiez vos pensées ou codes à SMO..."):
-        with st.chat_message("user", avatar="👤"):
-            st.write(prompt)
-        st.session_state.messages.append({"role": "user", "content": prompt})
+user_input = st.chat_input("Demander à SMO IA...")
+prompt = user_input if user_input else (initial_prompt if initial_prompt else None)
 
-        with st.chat_message("assistant", avatar="☘️"):
+if prompt:
+    # Affichage du message de l'utilisateur
+    with st.chat_message("user", avatar="👤"):
+        st.write(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    
+    # Génération de la réponse de SMO IA
+    with st.chat_message("assistant", avatar="☘️"):
+        message_placeholder = st.empty()
+        
+        # Logique de traitement si une image est fournie (uniquement pour les comptes connectés)
+        if uploaded_file and st.session_state.authenticated and uploaded_file.type.startswith("image"):
+            base64_image = encode_image(uploaded_file)
+            flux = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": st.session_state.messages[0]["content"]},
+                    {"role": "user", "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                    ]}
+                ],
+                stream=True
+            )
+        else:
+            # Traitement texte classique ou invité
             flux = client.chat.completions.create(
                 model="gpt-4o",
                 messages=st.session_state.messages,
-                temperature=0.8,
+                temperature=0.7,
                 stream=True
             )
-            reponse_complete = st.write_stream(flux)
-        st.session_state.messages.append({"role": "assistant", "content": reponse_complete})
-        st.rerun()
-
-# ==========================================
-# ONGLET 2 : ANALYSE MULTIMODALE (VISION IMAGE & VIDÉO)
-# ==========================================
-with tab_vision:
-    st.markdown("### 👁️ Analyse de Médias par Intelligence Visuelle")
-    st.write("Téléchargez une image ou une vidéo pour que SMO l'analyse avec son regard d'expert.")
-    
-    fichier_media = st.file_uploader("Choisir un fichier (PNG, JPG, MP4)", type=["png", "jpg", "jpeg", "mp4"])
-    question_media = st.text_input("Que voulez-par savoir sur ce média ?", value="Analyse ce document/média et explique-moi ce qu'il contient avec précision.")
-    
-    if fichier_media and st.button("Lancer l'analyse visuelle"):
-        with st.spinner("SMO observe et déchiffre le média..."):
-            if fichier_media.type.startswith("image"):
-                st.image(fichier_media, caption="Image importée", width=400)
-                base64_image = encode_image(fichier_media)
-                
-                contenu_requete = [
-                    {"type": "text", "text": question_media},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
-                ]
-                
-                reponse_vision = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": instructions_systeme},
-                        {"role": "user", "content": contenu_requete}
-                    ]
-                )
-                st.markdown("### ☘️ Analyse de SMO :")
-                st.write(reponse_vision.choices[0].message.content)
-                
-            elif fichier_media.type.startswith("video"):
-                st.video(fichier_media)
-                # Note technologique : Pour la vidéo pure en API directe simple, on analyse les métadonnées et la structure textuelle associée ou le résumé de frames
-                contenu_requete = f"[Analyse de fichier vidéo : {fichier_media.name}] {question_media}"
-                
-                reponse_vision = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": instructions_systeme},
-                        {"role": "user", "content": contenu_requete}
-                    ]
-                )
-                st.markdown("### ☘️ Analyse de SMO :")
-                st.write(reponse_vision.choices[0].message.content)
-
-# ==========================================
-# ONGLET 3 : STUDIO DE GÉNÉRATION D'IMAGES (DALL-E 3)
-# ==========================================
-with tab_studio:
-    st.markdown("### 🎨 Studio de Création Graphique")
-    st.write("Donnez une description textuelle et laissez SMO matérialiser vos idées en œuvres d'art numériques.")
-    
-    prompt_image = st.text_area("Décrivez l'image que vous imaginez :", placeholder="Ex: Un magnifique écosystème technologique en plein cœur d'une forêt tropicale, style aurore boréale verte, ultra-détaillé...")
-    
-    taille_image = st.selectbox("Format de l'image :", ["1024x1024", "1024x1792 (Vertical)", "1792x1024 (Paysage)"])
-    
-    # Transformation des choix de tailles pour l'API
-    api_size = "1024x1024"
-    if "Vertical" in taille_image: api_size = "1024x1792"
-    if "Paysage" in taille_image: api_size = "1792x1024"
-
-    if st.button("Générer l'Œuvre"):
-        if not prompt_image:
-            st.warning("Veuillez écrire une description d'abord.")
-        else:
-            with st.spinner("SMO peint votre imagination en haute définition..."):
-                try:
-                    generation = client.images.generate(
-                        model="dall-e-3",
-                        prompt=prompt_image,
-                        size=api_size,
-                        n=1,
-                        quality="standard"
-                    )
-                    url_image = generation.data[0].url
-                    st.image(url_image, caption="Création originale par SMO", use_container_width=True)
-                    st.success("Image générée avec succès ! Faites un clic droit pour l'enregistrer.")
-                except Exception as e:
-                    st.error(f"Une erreur est survenue lors de la génération : {e}")
+        
+        reponse_complete = st.write_stream(flux)
+        
+    st.session_state.messages.append({"role": "assistant", "content": reponse_complete})
+    st.rerun()
