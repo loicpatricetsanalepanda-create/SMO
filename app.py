@@ -214,4 +214,6 @@ def chat():
         return jsonify({"response": f"Erreur : {str(e)}"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    if __name__ == '__main__':
+    # Configuration permettant l'accès local (Wi-Fi) et l'adaptation aux serveurs d'hébergement
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=True)
