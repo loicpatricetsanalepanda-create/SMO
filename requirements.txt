@@ -1,2 +1,7 @@
 streamlit
 openai
+flask
+requests
+python-dotenv
+numpy
+pandas
