@@ -177,6 +177,7 @@ else:
             st.markdown(f"""
                 <div style="margin-bottom: 2.5rem; padding: 0 10px;">
                     <div style="color: #f0f4f9; font-size: 1.02rem; line-height: 1.65; white-space: pre-wrap;">{msg["content"]}</div>
+                    <!-- Barre d'outils d'actions discrète -->
                     <div style="display: flex; gap: 18px; color: #747775; margin-top: 14px; font-size: 0.88rem; user-select: none; cursor: pointer;">
                         <span title="Utile">👍</span> <span title="Pas utile">👎</span> <span title="Régénérer">🔄</span> <span title="Copier le texte">📋</span> <span title="Options">⋯</span>
                     </div>
@@ -210,7 +211,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         st.session_state.messages.append({"role": "assistant", "content": reponse_generee})
         
     except openai.RateLimitError:
-        # Intégration harmonieuse de la carte d'erreur de quota dans l'interface vitrée
+        # Intégration de la carte d'erreur de quota dans l'interface vitrée
         msg_quota_glass = """
         <div class="error-glass-panel">
             <strong>⚠️ Solde de l'API OpenAI Épuisé (Erreur 429)</strong><br>
