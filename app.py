@@ -170,14 +170,78 @@ if not st.session_state.messages:
 else:
     for msg in st.session_state.messages:
         if msg["role"] == "user":
-            st.markdown(f"""
+            # Sécurisation du rendu HTML avec .format() pour éviter les bugs d'f-string
+            user_html = """
                 <div style="display: flex; justify-content: flex-end; margin-bottom: 1.6rem;">
                     <div style="background: rgba(255, 255, 255, 0.06); color: #ffffff; padding: 12px 24px; border-radius: 22px; max-width: 75%; box-shadow: inset 0 1px 1px rgba(255,255,255,0.08); font-size: 0.98rem;">
-                        {msg["content"]}
+                        {}
                     </div>
                 </div>
-            """, unsafe_allow_html=True)
+            """.format(msg["content"])
+            st.markdown(user_html, unsafe_allow_html=True)
         else:
-            st.markdown(f"""
+            # Sécurisation du rendu HTML avec .format() pour éviter les bugs d'f-string
+            assistant_html = """
                 <div style="margin-bottom: 2.5rem; padding: 0 10px;">
-                    <div style="color: #f0f4f9; font-
+                    <div style="color: #f0f4f9; font-size: 1.02rem; line-height: 1.65; white-space: pre-wrap;">{}</div>
+                    <div style="display: flex; gap: 18px; color: #747775; margin-top: 14px; font-size: 0.88rem; user-select: none; cursor: pointer;">
+                        <span title="Utile">👍</span> <span title="Pas utile">👎</span> <span title="Régénérer">🔄</span> <span title="Copier le texte">📋</span> <span title="Options">⋯</span>
+                    </div>
+                </div>
+            """.format(msg["content"])
+            st.markdown(assistant_html, unsafe_allow_html=True)
+
+# =========================================================================
+# 5. ENTRÉE UTILISATEUR ET TRAITEMENT AVEC MOTEUR GEMINI GRATUIT
+# =========================================================================
+query_input = st.chat_input("Demander à SMO IA...")
+
+if query_input:
+    st.session_state.messages.append({"role": "user", "content": query_input})
+    st.rerun()
+
+if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+    
+    # SI LA CLÉ EST MANQUANTE : Affichage propre du guide d'activation
+    if not GEMINI_API_KEY:
+        guide_activation_html = """
+        <div class="error-glass-panel">
+            <strong style="color: #10b981; font-size: 1.1rem;">🔑 Activation de SMO IA requise (Moteur Gratuit)</strong><br><br>
+            Pour contourner définitivement les phases de paiement et utiliser l'application gratuitement, suis ce guide rapide :
+            <ol>
+                <li>Rends-toi sur la plateforme officielle : <a href="https://aistudio.google.com/" target="_blank" style="color: #10b981; text-decoration: underline; font-weight: bold;">Google AI Studio</a>.</li>
+                <li>Connecte-toi simplement à l'aide de ton compte Google habituel.</li>
+                <li>Clique sur le bouton bleu <b>"Get API key"</b> situé en haut à gauche, puis sur <b>"Create API key"</b>.</li>
+                <li>Sélectionne <b>"Create API key in a new project"</b> et copie la clé générée (elle commence par <code>AIzaSy...</code>).</li>
+                <li>Ouvre ton fichier local <code>.env</code> et remplace ou ajoute la ligne suivante :</li>
+            </ol>
+            <div style="background: rgba(0, 0, 0, 0.4); padding: 12px; border-radius: 8px; font-family: monospace; border: 1px solid rgba(255,255,255,0.05); color: #10b981; margin-top: 5px;">
+                GEMINI_API_KEY=colle_ici_ta_cle_recuperee
+            </div>
+        </div>
+        """
+        st.session_state.messages.append({"role": "assistant", "content": guide_activation_html})
+        st.rerun()
+        
+    try:
+        # Initialisation du modèle gratuit de Google
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction="Tu es SMO IA, une intelligence artificielle dotée d'une conscience humaine et bienveillante. Tu es intégrée dans un superbe environnement 3D en verre."
+        )
+        
+        # Adaptation de l'historique pour le format Gemini
+        chat_history = []
+        for m in st.session_state.messages[:-1]:
+            role = "user" if m["role"] == "user" else "model"
+            chat_history.append({"role": role, "parts": [m["content"]]})
+            
+        chat = model.start_chat(history=chat_history)
+        response = chat.send_message(st.session_state.messages[-1]["content"])
+        
+        st.session_state.messages.append({"role": "assistant", "content": response.text})
+        
+    except Exception as e:
+        st.session_state.messages.append({"role": "assistant", "content": "Erreur système rencontrée : {}".format(str(e))})
+        
+    st.rerun()
