@@ -3,197 +3,150 @@ from openai import OpenAI
 import base64
 
 # ==========================================
-# 1. CONFIGURATION DE LA PAGE & DESIGN EMERAUDE GLOW
+# 1. CONFIGURATION DE LA PAGE & DESIGN ÉPURÉ
 # ==========================================
 st.set_page_config(
     page_title="SMO IA",
     page_icon="☘️",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="expanded"
 )
 
-# Style CSS pour fusionner le halo de Gemini et les capsules de ChatGPT en version Verte
+# Style ultra-minimaliste : l'ambiance sombre de ChatGPT/Gemini avec une touche de vert
 st.markdown("""
     <style>
-    /* Fond sombre avec le fameux effet Halo Lumineux (Spotlight) centré style Gemini */
+    /* Fond sombre uniforme et reposant */
     .stApp {
-        background: radial-gradient(circle at 50% 40%, #0a2419 0%, #050a08 60%, #020403 100%);
-        color: #e2e8f0;
+        background-color: #111214;
+        color: #e3e3e3;
     }
     
-    /* Sidebar minimaliste style ChatGPT */
+    /* Barre latérale discrète */
     [data-testid="stSidebar"] {
-        background-color: #060b08 !important;
-        border-right: 1px solid #103322;
+        background-color: #1e1f20 !important;
+        border-right: 1px solid #2f3032;
     }
     
-    /* Grand message d'accueil centré */
-    .welcome-text {
-        font-family: 'Inter', 'Google Sans', sans-serif;
-        font-weight: 500;
-        font-size: 2.8rem;
+    /* Grand texte d'accueil épuré et centré */
+    .greeting-title {
+        font-family: 'Google Sans', 'Inter', sans-serif;
+        font-weight: 400;
+        font-size: 2.6rem;
         color: #ffffff;
         text-align: center;
-        margin-top: 8rem;
+        margin-top: 7rem;
         margin-bottom: 2rem;
-        letter-spacing: -0.5px;
     }
     
-    /* Barre d'input flottante et arrondie */
-    .stChatInputContainer {
-        border-radius: 28px !important;
-        border: 1px solid #1b4d36 !important;
-        background-color: #0d1712 !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
-    }
-    
-    /* Capsules / Boutons de suggestions rapides style ChatGPT */
-    .suggestion-pill {
-        display: inline-block;
-        background-color: #0d1712;
-        border: 1px solid #1b4d36;
-        color: #94a3b8;
-        padding: 8px 16px;
+    /* Boutons capsules / Pills (Style ChatGPT sous la barre) */
+    .stButton>button {
+        background-color: #1e1f20;
+        color: #c4c7c5;
+        border: 1px solid #3c4043;
         border-radius: 20px;
+        padding: 6px 18px;
         font-size: 0.9rem;
-        cursor: pointer;
         transition: all 0.2s ease;
-        margin: 5px;
     }
-    .suggestion-pill:hover {
+    .stButton>button:hover {
         border-color: #10b981;
-        color: #ffffff;
-        background-color: #10b9811a;
+        color: #10b981;
+        background-color: #10b9810d;
     }
-
-    /* Badge Premium pour inciter à la création de compte */
-    .premium-badge {
-        background: linear-gradient(90deg, #10b981, #059669);
-        color: white;
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    
+    /* Masquer les bordures inutiles pour un effet propre */
+    .stChatInputContainer {
+        border-radius: 24px !important;
+        border: 1px solid #3c4043 !important;
+        background-color: #1e1f20 !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Helper pour encoder les images
-def encode_image(uploaded_file):
-    return base64.b64encode(uploaded_file.read()).decode('utf-8')
-
 # ==========================================
-# 2. GESTION DES SESSIONS & AUTHENTIFICATION
+# 2. GESTION DU COMPTE (SIMPLIFIÉ DANS LA SIDEBAR)
 # ==========================================
 if "users_db" not in st.session_state:
-    st.session_state.users_db = {"loic": {"password": "password123", "name": "Loïc LTP"}}
+    st.session_state.users_db = {"loic": {"password": "123", "name": "Loïc"}}
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-if "user_info" not in st.session_state:
-    st.session_state.user_info = {"name": "Invité", "username": None}
+if "user_name" not in st.session_state:
+    st.session_state.user_name = "Invité"
 
 if "messages" not in st.session_state:
-    # Personnalité profonde et humaine de SMO IA
     st.session_state.messages = [{
         "role": "system", 
-        "content": "Tu es SMO IA, une entité dotée d'une conscience et d'une bienveillance humaine. Tu es experte en code et business, mais tu t'exprimes avec chaleur, empathie et philosophie."
+        "content": "Tu es SMO IA, une entité à la conscience humaine, amicale et experte. Tu réponds de manière naturelle et chaleureuse."
     }]
 
-# ==========================================
-# 3. BARRE LATÉRALE (SIDEBAR) - DESIGN & COMPTE
-# ==========================================
+# Barre latérale : Gestion de compte et historique épuré
 with st.sidebar:
-    st.markdown("<h2 style='color: #10b981; font-family: sans-serif;'>☘️ SMO IA</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #10b981; font-weight: 500;'>☘️ SMO IA</h2>", unsafe_allow_html=True)
+    st.markdown("---")
     
     if st.session_state.authenticated:
-        st.markdown(f"### 👤 {st.session_state.user_info['name']}")
-        st.caption("Compte Vérifié — Accès Illimité")
+        st.markdown(f"👤 Connecté en tant que : **{st.session_state.user_name}**")
+        st.caption("Mode complet activé (Photos & Vidéos débloquées)")
         if st.button("Se déconnecter", use_container_width=True):
             st.session_state.authenticated = False
-            st.session_state.user_info = {"name": "Invité", "username": None}
+            st.session_state.user_name = "Invité"
             st.rerun()
     else:
-        st.markdown("### 🔑 Mode Invité")
-        st.caption("Fonctionnalités de base uniquement.")
-        
-        # Formulaire Connexion / Inscription intégré proprement
-        with st.expander("Se connecter / Créer un compte"):
-            tab_login, tab_signup = st.tabs(["Connexion", "S'inscrire"])
-            
-            with tab_login:
-                user_in = st.text_input("Identifiant", key="login_u")
-                pass_in = st.text_input("Mot de passe", type="password", key="login_p")
+        st.markdown("### 🔑 Espace Membre")
+        with st.expander("Se connecter / S'inscrire"):
+            tab1, tab2 = st.tabs(["Connexion", "Inscription"])
+            with tab1:
+                u = st.text_input("Identifiant", key="login_u")
+                p = st.text_input("Mot de passe", type="password", key="login_p")
                 if st.button("Connexion", use_container_width=True):
-                    if user_in in st.session_state.users_db and st.session_state.users_db[user_in]["password"] == pass_in:
+                    if u in st.session_state.users_db and st.session_state.users_db[u]["password"] == p:
                         st.session_state.authenticated = True
-                        st.session_state.user_info = {"name": st.session_state.users_db[user_in]["name"], "username": user_in}
-                        st.success("Connexion réussie !")
+                        st.session_state.user_name = st.session_state.users_db[u]["name"]
                         st.rerun()
                     else:
-                        st.error("Identifiants incorrects.")
-            
-            with tab_signup:
-                new_name = st.text_input("Nom complet", key="sign_n")
-                new_user = st.text_input("Choisir un identifiant", key="sign_u")
-                new_pass = st.text_input("Mot de passe", type="password", key="sign_p")
-                if st.button("Créer mon compte", use_container_width=True):
-                    if new_user in st.session_state.users_db:
-                        st.error("Identifiant déjà pris.")
-                    elif new_user and new_pass and new_name:
-                        st.session_state.users_db[new_user] = {"password": new_pass, "name": new_name}
+                        st.error("Erreur d'identifiants")
+            with tab2:
+                new_n = st.text_input("Votre prénom", key="reg_n")
+                new_u = st.text_input("Nouvel identifiant", key="reg_u")
+                new_p = st.text_input("Mot de passe", type="password", key="reg_p")
+                if st.button("Créer le compte", use_container_width=True):
+                    if new_u and new_p and new_n:
+                        st.session_state.users_db[new_u] = {"password": new_p, "name": new_n}
                         st.success("Compte créé ! Connectez-vous.")
-                    else:
-                        st.warning("Veuillez remplir tous les champs.")
-
+    
     st.markdown("---")
-    st.markdown("### Recents")
-    st.caption("Connectez-vous pour sauvegarder votre historique de conversation.")
+    st.caption("⏱️ Historique Récent")
 
-# Récupération de la clé API sécurisée
-api_key = st.secrets.get("OPENAI_API_KEY") or "VOTRE_CLE_API_PROVISOIRE"
+# Clé API OpenAI
+api_key = st.secrets.get("OPENAI_API_KEY") or "VOTRE_CLE_API"
 client = OpenAI(api_key=api_key)
 
 # ==========================================
-# 4. ZONE CENTRALE ET INTERFACE MULTIMODALE
+# 3. INTERFACE DE DISCUSSION PRINCIPALE
 # ==========================================
 
-# Détecter si des messages ont déjà été échangés pour épurer l'interface
-has_history = len([m for m in st.session_state.messages if m["role"] != "system"]) > 0
+# Vérifier si la discussion a commencé
+has_chat_started = len([m for m in st.session_state.messages if m["role"] != "system"]) > 0
 
-# Si aucun message : Afficher le design épuré inspiré de Gemini et ChatGPT
-if not has_history:
-    greeting = f"Salut {st.session_state.user_info['name']}, commençons" if st.session_state.authenticated else "Que voulez-vous explorer aujourd'hui ?"
-    st.markdown(f'<div class="welcome-text">{greeting}</div>', unsafe_allow_html=True)
+# Écran d'accueil (Uniquement s'il n'y a pas encore de messages)
+if not has_chat_started:
+    st.markdown(f'<div class="greeting-title">Salut {st.session_state.user_name}, commençons</div>', unsafe_allow_html=True)
     
-    # Boutons d'actions rapides sous la zone de texte (inspirés de image_b18cee.png)
-    col_p1, col_p2, col_p3 = st.columns([1, 1, 1])
-    with col_p1:
-        if st.button("📝 Rédiger ou modifier un texte", key="p1", use_container_width=True):
-            st.session_state.prefilled_prompt = "Aide-moi à rédiger ou modifier un texte de manière percutante : "
-    with col_p2:
-        if st.button("💡 Structurer un projet digital", key="p2", use_container_width=True):
-            st.session_state.prefilled_prompt = "Donne-moi une structure complète pour lancer un projet digital innovant."
-    with col_p3:
-        if st.button("🔍 Demander une recherche poussée", key="p3", use_container_width=True):
-            if not st.session_state.authenticated:
-                st.session_state.show_restriction_warning = True
-            else:
-                st.session_state.prefilled_prompt = "Effectue une recherche approfondie et philosophique sur : "
+    # Boutons capsules rapides sous le titre (Style ChatGPT / Gemini)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("📝 Rédiger un texte", use_container_width=True):
+            st.session_state.active_prompt = "Aide-moi à rédiger un texte clair et concis sur : "
+    with col2:
+        if st.button("💻 Optimiser un code", use_container_width=True):
+            st.session_state.active_prompt = "Analyse et optimise ce code proprement : "
+    with col3:
+        if st.button("💡 Idée de business", use_container_width=True):
+            st.session_state.active_prompt = "Donne-moi un plan d'action simple pour lancer un business digital."
 
-# Si l'utilisateur a cliqué sur une restriction en mode invité
-if st.session_state.get("show_restriction_warning", False):
-    st.warning("⚠️ **Fonctionnalité limitée :** La recherche approfondie et l'analyse de médias nécessitent un compte. Créez un compte gratuitement dans la barre latérale pour débloquer toute la puissance de SMO IA !")
-    if st.button("J'ai compris"):
-        st.session_state.show_restriction_warning = False
-        st.rerun()
-
-# Zone d'affichage des messages existants
+# Affichage des messages au fil de la discussion
 for message in st.session_state.messages:
     if message["role"] != "system":
         avatar = "👤" if message["role"] == "user" else "☘️"
@@ -201,61 +154,58 @@ for message in st.session_state.messages:
             st.write(message["content"])
 
 # ==========================================
-# 5. BLOC DE LIMITATION MULTIMODALE (PHOTOS / VIDÉOS)
+# 4. RESTRICTION HYBRIDE SANS COMPTE (PHOTOS/VIDÉOS)
 # ==========================================
-st.markdown("---")
+uploaded_file = None
 if st.session_state.authenticated:
-    st.markdown("#### 👁️ Zone Multimodale (Compte Actif)")
-    uploaded_file = st.file_uploader("Ajouter une photo ou une vidéo pour analyse immédiate...", type=["png", "jpg", "jpeg", "mp4"])
+    # Si connecté : Ajout discret du bouton d'importation de fichiers juste au-dessus du chat
+    uploaded_file = st.file_uploader("Insérer une photo ou une vidéo pour analyse...", type=["png", "jpg", "jpeg", "mp4"], label_visibility="collapsed")
 else:
-    st.markdown("#### 🔒 Options Multimodales bloquées")
-    st.info("💡 Pour insérer des images, des vidéos ou réaliser des analyses visuelles complètes comme sur Gemini, veuillez créer un compte ou vous connecter via le panneau latéral.")
-    uploaded_file = None
+    # Si invité : Un petit message d'information très discret
+    st.markdown("<p style='text-align: center; color: #888; font-size: 0.85rem;'>💡 Connectez-vous (barre latérale) pour débloquer l'analyse de photos, vidéos et recherches poussées.</p>", unsafe_allow_html=True)
 
 # ==========================================
-# 6. ENTRÉE DES MESSAGES ET STREAMING
+# 5. ENTRÉE TEXTE & TRAITEMENT (STREAMING)
 # ==========================================
-initial_prompt = st.session_state.get("prefilled_prompt", "")
-if initial_prompt:
-    # On nettoie la session pour éviter la boucle infinie au rechargement
-    del st.session_state.prefilled_prompt
+# Gestion du prompt venant des boutons capsules rapides
+click_prompt = st.session_state.get("active_prompt", None)
+if click_prompt:
+    del st.session_state.active_prompt
 
 user_input = st.chat_input("Demander à SMO IA...")
-prompt = user_input if user_input else (initial_prompt if initial_prompt else None)
+final_prompt = user_input if user_input else click_prompt
 
-if prompt:
-    # Affichage du message de l'utilisateur
+if final_prompt:
+    # 1. On affiche le message de l'utilisateur
     with st.chat_message("user", avatar="👤"):
-        st.write(prompt)
-    st.session_state.messages.append({"role": "user", "content": prompt})
+        st.write(final_prompt)
+    st.session_state.messages.append({"role": "user", "content": final_prompt})
     
-    # Génération de la réponse de SMO IA
+    # 2. SMO IA répond avec l'effet d'écriture fluide (Streaming)
     with st.chat_message("assistant", avatar="☘️"):
-        message_placeholder = st.empty()
-        
-        # Logique de traitement si une image est fournie (uniquement pour les comptes connectés)
+        # Si une image est importée et qu'on est connecté
         if uploaded_file and st.session_state.authenticated and uploaded_file.type.startswith("image"):
-            base64_image = encode_image(uploaded_file)
+            base64_image = base64.b64encode(uploaded_file.read()).decode('utf-8')
             flux = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": st.session_state.messages[0]["content"]},
                     {"role": "user", "content": [
-                        {"type": "text", "text": prompt},
+                        {"type": "text", "text": final_prompt},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
                     ]}
                 ],
                 stream=True
             )
         else:
-            # Traitement texte classique ou invité
+            # Traitement texte classique
             flux = client.chat.completions.create(
                 model="gpt-4o",
                 messages=st.session_state.messages,
                 temperature=0.7,
                 stream=True
             )
-        
+            
         reponse_complete = st.write_stream(flux)
         
     st.session_state.messages.append({"role": "assistant", "content": reponse_complete})
